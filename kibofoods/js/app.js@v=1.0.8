@@ -1,0 +1,835 @@
+/*!
+
+ =========================================================
+ * Main
+ =========================================================
+
+ */
+
+
+
+var big_image;
+
+jQuery(function ($) {
+  $(document).ready(function () {
+    BrowserDetect.init();
+    $('body').bootstrapMaterialDesign();
+    window_width = $(window).width();
+    $navbar = $('.navbar[color-on-scroll]');
+    scroll_distance = $navbar.attr('color-on-scroll') || 500;
+    $navbar_collapse = $('.navbar').find('.navbar-collapse');
+
+    // Search desktop
+    $(function () {
+      var app = $('#app'), init = $('#init'), layer = $('#layer'), input = $('#inp-cover input'), button = $('button');
+
+      function toggleApp() {
+        app.toggleClass('opened');
+        layer.toggleClass('layeropened');
+        init.toggleClass("d-none");
+
+        if (button.hasClass('shadow'))
+          button.toggleClass('shadow');
+        else
+          setTimeout(function () { button.toggleClass('shadow'); }, 300);
+
+        if (app.hasClass('opened')) {
+          setTimeout(function () { input.toggleClass('move-up'); }, 200);
+          setTimeout(function () { input.focus(); }, 500);
+        }
+        else
+          setTimeout(function () { input.toggleClass('move-up').val(''); }, 200);
+
+        if (!layer.hasClass('sl')) {
+          setTimeout(function () {
+            layer.addClass('sl');
+          }, 800);
+        }
+        else
+          setTimeout(function () { layer.removeClass('sl'); }, 300);
+      }
+
+      function validateContent(content) {
+        if (content.trim() === "") {
+          init.removeClass("d-none");
+          return false;
+        } else {
+          init.addClass("d-none");
+        }
+      }
+
+      layer.on('click', toggleApp);
+      init.on('click', toggleApp);
+
+      input.bind("keyup", function (e) {
+        if (e.key === "Escape") {
+          toggleApp()
+        } else {
+          validateContent(this.value)
+        }
+      })
+
+    });
+
+    // Init Carousel
+    if ($(".slider-featured-products")[0]) {
+      $('.slider-featured-products').slick({
+        // Changed by Sebastian Rojo
+        centerMode: false,
+        centerPadding: 0,
+        slidesToShow: 4,
+        responsive: [
+          {
+            breakpoint: 1024,
+            settings: {
+              slidesToShow: 3,
+              slidesToScroll: 3,
+            }
+          },
+          {
+            breakpoint: 600,
+            settings: {
+              slidesToShow: 1,
+              slidesToScroll: 1
+            }
+          },
+          {
+            breakpoint: 480,
+            settings: {
+              slidesToShow: 1,
+              slidesToScroll: 1
+            }
+          }
+        ],
+      }).on('afterChange', function (event, slick) {
+        $('#link-products').remove();
+        var href = $(`.slick-center`).find("a").attr("href")
+        $(`.slider-featured-products .slick-slide.slick-center .product-category-detail`).append("<a id='link-products' href='" + href + "'></a>");
+
+      });
+    }
+
+    // Init search carousel
+    if ($(".slider-search-products")[0]) {
+      $('.slider-search-products').slick({
+        // Changed by Sebastian Rojo
+
+        slidesToShow: 5,
+        infinite: true,
+        cssEase: 'linear',
+        variableWidth: true,
+        responsive: [
+          {
+            breakpoint: 1024,
+            settings: {
+              slidesToShow: 3,
+              slidesToScroll: 3,
+            }
+          },
+          {
+            breakpoint: 600,
+            settings: {
+              slidesToShow: 2,
+              slidesToScroll: 2
+            }
+          },
+          {
+            breakpoint: 480,
+            settings: {
+              slidesToShow: 2,
+              slidesToScroll: 2,
+              arrows: false,
+              variableWidth: false,
+            }
+          }
+        ],
+      });
+
+      $(".slider-search-products .slick-slide .slide .product-category-detail").each(function () {
+        let prodfullname = $(this).children('input.product-full-name').val();
+
+        $(this).children('a:not(.btn-preview-product)').on('click', function () {
+          dataLayer.push({
+            'event': 'pushEventGA',
+            'categoria': 'BusquedaResultados',
+            'accion': 'ClicProductos',
+            'etiqueta': prodfullname
+          });
+        });
+      });
+
+      $(".section-search .content-result .media .media-body a").each(function () {
+        $(this).on('click', function () {
+          dataLayer.push({
+            'event': 'pushEventGA',
+            'categoria': 'BusquedaContenido',
+            'accion': 'ClicContenido',
+            'etiqueta': $(this).text()
+          });
+        });
+      });
+    }
+
+    // My account navigation menu on mobile
+    if (window_width <= 768) {
+      if ($("#myaccount-navigtation-mob")[0]) {
+        $("#myaccount-navigtation-mob").removeClass('d-none');
+        $("#myaccount-navigtation-mob li").each(function (id, li) {
+          var item = $(li);
+
+          if (item.hasClass('is-active')) {
+            var indexli = item.attr('data-nav-index');
+
+            if (indexli > 2 && indexli != $("#myaccount-navigtation-mob li").length) {
+              var marginl = ($("#myaccount-navigtation-mob").width()) / 3;
+              $("#myaccount-navigtation-mob").css('margin-left', `-${marginl * (indexli - 2)}px`);
+            }
+          }
+        });
+      }
+    }
+
+    if ($('select').length) {
+      $('select').select2({
+        language: "es",
+        minimumResultsForSearch: 10
+      });
+    }
+
+    //  Activate the Tooltips
+    $('[data-toggle="tooltip"], [rel="tooltip"]').tooltip();
+
+    // Activate Popovers
+    $('[data-toggle="popover"]').popover();
+
+    if ($('.navbar-color-on-scroll').length != 0) {
+      $(window).on('scroll', materialKit.checkScrollForTransparentNavbar);
+    }
+
+    materialKit.checkScrollForTransparentNavbar();
+
+    if (window_width >= 768) {
+      big_image = $('.page-header[data-parallax="true"]');
+      if (big_image.length != 0) {
+        $(window).on('scroll', materialKit.checkScrollForParallax);
+      }
+    }
+
+    addAnalytClassesMenusKibo();
+    getCartProducts();
+
+    $(document.body).on('wc_fragment_refresh updated_wc_div', function () {
+      getCartProducts();
+    });
+  });
+});
+
+function addAnalytClassesMenusKibo() {
+  if ($('#menu-menu-principal')[0]) {
+    let menuItems = $('#menu-menu-principal li a');
+
+    menuItems.each(function (i, elem) {
+      let text = $(this).text().toLowerCase().replace(/\s/g, '');
+
+      switch (text) {
+        case 'inicio':
+          $(this).addClass("gtmHomeClicMenuInicio");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicMenuInicio") });
+          break;
+        case 'tienda':
+          $(this).addClass("gtmHomeClicMenuTienda");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicMenuTienda") });
+          break;
+        case 'recetas':
+          $(this).addClass("gtmHomeClicMenuRecetas");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicMenuRecetas") });
+          break;
+        case 'blog':
+          $(this).addClass("gtmHomeClicMenuBlog");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicMenuBlog") });
+          break;
+        case 'contáctanos':
+          $(this).addClass("gtmHomeClicMenuContactanos");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicMenuContactanos") });
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
+  if ($('#menu-bloque-footer-menu-1')[0]) {
+    let menuItems = $('#menu-bloque-footer-menu-1 li a');
+    menuItems.each(function (i, elem) {
+      let text = $(this).text().toLowerCase().replace(/\s/g, '');
+
+      switch (text) {
+        case 'políticadeprivacidad':
+          $(this).addClass("gtmHomeClicInferiorPoliticasDevolucion");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicInferiorPoliticasDevolucion") });
+          break;
+        case 'términosycondiciones':
+          $(this).addClass("gtmHomeClicInferiorTerminos");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicInferiorTerminos") });
+          break;
+        case 'contáctanos':
+          $(this).addClass("gtmHomeClicInferiorContactanos");
+          $(this).on('click', function () { sendFBPixelKibo("gtmHomeClicInferiorContactanos") });
+          break;
+        default:
+          break;
+      }
+    });
+  }
+}
+
+$(document).on('click', '.navbar-toggler', function () {
+  $toggle = $(this);
+
+  if (materialKit.misc.navbar_menu_visible == 1) {
+    $('html').removeClass('nav-open');
+    materialKit.misc.navbar_menu_visible = 0;
+    $('#bodyClick').remove();
+    setTimeout(function () {
+      $toggle.removeClass('toggled');
+    }, 550);
+
+    $('html').removeClass('nav-open-absolute');
+  } else {
+    setTimeout(function () {
+      $toggle.addClass('toggled');
+    }, 580);
+
+
+    div = '<div id="bodyClick"></div>';
+    $(div).appendTo("body").click(function () {
+      $('html').removeClass('nav-open');
+
+      if ($('nav').hasClass('navbar-absolute')) {
+        $('html').removeClass('nav-open-absolute');
+      }
+      materialKit.misc.navbar_menu_visible = 0;
+      $('#bodyClick').remove();
+      setTimeout(function () {
+        $toggle.removeClass('toggled');
+      }, 550);
+    });
+
+    if ($('nav').hasClass('navbar-absolute')) {
+      $('html').addClass('nav-open-absolute');
+    }
+
+    $('html').addClass('nav-open');
+    materialKit.misc.navbar_menu_visible = 1;
+  }
+});
+
+materialKit = {
+  misc: {
+    navbar_menu_visible: 0,
+    window_width: 0,
+    transparent: true,
+    fixedTop: false,
+    navbar_initialized: false,
+    isWindow: document.documentMode || /Edge/.test(navigator.userAgent)
+  },
+
+  initFormExtendedDatetimepickers: function () {
+    $('.datetimepicker').datetimepicker({
+      icons: {
+        time: "fa fa-clock-o",
+        date: "fa fa-calendar",
+        up: "fa fa-chevron-up",
+        down: "fa fa-chevron-down",
+        previous: 'fa fa-chevron-left',
+        next: 'fa fa-chevron-right',
+        today: 'fa fa-screenshot',
+        clear: 'fa fa-trash',
+        close: 'fa fa-remove'
+      }
+    });
+  },
+
+  checkScrollForParallax: function () {
+    oVal = ($(window).scrollTop() / 3);
+    big_image.css({
+      'transform': 'translate3d(0,' + oVal + 'px,0)',
+      '-webkit-transform': 'translate3d(0,' + oVal + 'px,0)',
+      '-ms-transform': 'translate3d(0,' + oVal + 'px,0)',
+      '-o-transform': 'translate3d(0,' + oVal + 'px,0)'
+    });
+  },
+
+  checkScrollForTransparentNavbar: debounce(function () {
+    if ($(document).scrollTop() > scroll_distance) {
+      if (materialKit.misc.transparent) {
+        materialKit.misc.transparent = false;
+        $('.navbar-color-on-scroll').removeClass('navbar-transparent');
+      }
+    } else {
+      if (!materialKit.misc.transparent) {
+        materialKit.misc.transparent = true;
+        $('.navbar-color-on-scroll').addClass('navbar-transparent');
+      }
+    }
+  }, 17)
+};
+
+function openModalPreviewProduct(data, currpage = null) {
+  if (!!data) {
+    if (!!currpage) {
+      if (currpage == 'other-products') {
+        dataLayer.push({
+          'event': 'pushEventGA',
+          'categoria': 'TiendaOtrosProductos',
+          'accion': 'ClicOtrosProductosVistaPrevia',
+          'etiqueta': data.title
+        });
+        fbq("trackCustom", "ClicOtrosProductosVistaPrevia", {
+          'categoria': 'TiendaOtrosProductos',
+          'etiqueta': data.title
+        });
+      } else {
+        dataLayer.push({
+          'event': 'pushEventGA',
+          'categoria': currpage,
+          'accion': 'ClicProdVistaPrev',
+          'etiqueta': data.title
+        });
+        fbq("trackCustom", "ClicProdVistaPrev", {
+          'categoria': currpage,
+          'etiqueta': data.title
+        });
+      }
+    }
+    $("#product_preview_id").val(data.product_id);
+    $("#product_preview_price").val(data.price);
+    $("#product_preview_title").text(data.title);
+    $("#product_preview_image").attr("src", data.image_url);
+    $("#product_preview_protein").html(((data.caloric_list.protein) ? data.caloric_list.protein : 0) + "<small>g</small>");
+    $("#product_preview_fiber").html(((data.caloric_list.fiber) ? data.caloric_list.fiber : 0) + "<small>g</small>");
+    $("#product_preview_iron").html(((data.caloric_list.iron) ? data.caloric_list.iron : 0) + "<small>%</small>");
+    $("#product_preview_daily_percent").text(data.daily_percent);
+    $("#modal-product-preview-home .product_preview_product_url").attr("href", data.product_url);
+    $("#prevmodal-add-to-cart-button").addClass('btnAddToCart' + data.product_id);
+
+    if (data.availability == 'out-of-stock') {
+      $("#out-of-stock-product").removeClass('d-none');
+      $("#prevmodal-add-to-cart-button").addClass('out-of-stock');
+      $("#prevmodal-add-to-cart-button").prop('disabled', 'disabled');
+    } else {
+      $("#out-of-stock-product").addClass('d-none');
+      $("#prevmodal-add-to-cart-button").removeClass('out-of-stock');
+      $("#prevmodal-add-to-cart-button").removeAttr('disabled');
+    }
+  }
+  $("#modal-product-preview-home").modal({
+    backdrop: 'static',
+    keyboard: false
+  });
+}
+
+function addToCart(id_prod, qua_prod = 1, title, currpage = null, price) {
+  if (!!title && !!currpage) {
+    if (currpage == 'other-products') {
+      dataLayer.push({
+        'event': 'pushEventGA',
+        'categoria': 'TiendaOtrosProductos',
+        'accion': 'ClicOtrosProductosAñadirCarrito',
+        'etiqueta': title
+      });
+      fbq("trackCustom", "ClicOtrosProductosAñadirCarrito", {
+        'categoria': 'TiendaOtrosProductos',
+        'etiqueta': title
+      });
+    } else {
+      dataLayer.push({
+        'event': 'pushEventGA',
+        'categoria': currpage,
+        'accion': 'ClicProdAñadirCarrito',
+        'etiqueta': title
+      });
+      fbq("trackCustom", "ClicProdAñadirCarrito", {
+        'categoria': currpage,
+        'etiqueta': title
+      });
+    }
+  }
+
+  fbq('track', 'AddToCart', {
+    content_ids: [id_prod],
+    content_name: title,
+    content_type: 'product',
+    currency: 'COP',
+    value: price
+  });
+
+  $('button.btnAddToCart' + id_prod).prop('disabled', 'disabled');
+
+  if ($(document).width() > 768) {
+    $('button.btnAddToCart' + id_prod).html(`<i class="fa fa-spinner fa-spin"></i>Añadir al carrito`);
+  } else {
+    $('button.btnAddToCart' + id_prod).html(`<i class="fa fa-spinner fa-spin"></i>`);
+  }
+  let endpoint = _SITEURL_ + "/wp-content/themes/kibofoods/api-cart.php";
+  let formData = new FormData();
+  formData.append('method', 'addproducttocart');
+  formData.append('productid', id_prod);
+  formData.append('quantity', qua_prod);
+
+  fetch(endpoint, {
+    method: 'post',
+    body: formData
+  }).then(function (response) {
+    return response.json();
+  }).then(function (res) {
+    if (res.response == true) {
+      getCartProducts();
+    } else {
+      console.log(res);
+    }
+
+    let toastelem = document.querySelector('#toast-add-to-cart');
+    toastelem.classList.remove("d-none");
+    toastelem.classList.remove("slide-out-bottom");
+    toastelem.classList.add("slide-in-bottom");
+    $('#toast-add-to-cart .toast-product-name').html("<strong>" + title + "</strong>");
+    if ($(document).width() > 768) {
+      $('button.btnAddToCart' + id_prod).html(`<span class="cart-icon"></span>Añadir al carrito`);
+    } else {
+      $('button.btnAddToCart' + id_prod).html(`Añadir al carrito`);
+    }
+    $('button.btnAddToCart' + id_prod).removeAttr('disabled');
+    window.setTimeout(function () {
+      toastelem.classList.remove("slide-in-bottom");
+      toastelem.classList.add("slide-out-bottom");
+    }, 5000);
+  });
+}
+
+function showCart() {
+  dataLayer.push({
+    'event': 'pushEventGA',
+    'categoria': 'Home',
+    'accion': 'ClicMenu',
+    'etiqueta': 'CarritoCompras'
+  });
+
+  sendFBPixelKibo("gtmHomeClicMenuCarritoCompras");
+
+  let toastelem = document.querySelector('#toast-add-to-cart');
+  toastelem.classList.remove("slide-in-bottom");
+  toastelem.classList.add("slide-out-bottom");
+
+  let cartContainer = document.querySelector('#sidenav-cart');
+  cartContainer.classList.remove("d-none");
+  cartContainer.classList.remove("slide-out-right");
+  cartContainer.classList.add("slide-in-right");
+}
+
+function setProductQuantity(cart_item, qua_prod) {
+  $("#sidenav-cart .sidenav-loader").removeClass('d-none');
+  let endpoint = _SITEURL_ + "/wp-content/themes/kibofoods/api-cart.php";
+  let formData = new FormData();
+  formData.append('method', 'setproducttocart');
+  formData.append('cartitem', cart_item);
+  formData.append('quantity', qua_prod);
+
+  fetch(endpoint, {
+    method: 'post',
+    body: formData
+  }).then(function (response) {
+    return response.json();
+  }).then(function (res) {
+    if (res.response == true) {
+      getCartProducts();
+    } else {
+      console.log(res);
+    }
+  });
+}
+
+function closeCart() {
+  let cartContainer = document.querySelector('#sidenav-cart');
+  cartContainer.classList.remove("slide-in-right");
+  cartContainer.classList.add("slide-out-right");
+  sendFBPixelKibo("gtmCarritoCompraClicSeguirComprando");
+}
+
+function getCartProducts() {
+  let container = $('#sidenav-cart-content');
+  $("#sidenav-cart .sidenav-loader").removeClass('d-none');
+  let cartcounter = $('span.mini-cart-counter');
+  cartcounter.removeClass("d-none");
+  cartcounter.addClass("d-flex");
+  cartcounter.html('<i class="fa fa-spinner fa-spin"></i>');
+
+  var endpoint = _SITEURL_ + "/wp-content/themes/kibofoods/api-cart.php";
+  var formData = new FormData();
+  formData.append('method', 'getcartproducts');
+
+  fetch(endpoint, {
+    method: 'post',
+    body: formData,
+  }).then(function (response) {
+    return response.json();
+  }).then(function (res) {
+    if (res.length > 0) {
+      let html = '';
+
+      for (i = 0; i < res.length; i++) {
+        html += `<div class="sidenav-cart-item">
+                    <div class="image">
+                        <img src="${res[i].image_url}">
+                    </div>
+                    <div class="product-data">
+                        <p class="title">${res[i].title}</p>
+                        <div class="quantity-cont">
+                            <label class="quantity-text">Cantidad: </label>
+                            <div class="quantity-button">
+                                <span class="q-button less ${(res[i].quantity <= 1) && 'disabled'}"
+                                    onclick="sidenavCartquantityLessButton('quantity_${res[i].item}', '${res[i].item}');">-</span>
+                                <input type="number" id="quantity_${res[i].item}" class="input-text qty text" step="1" min="0"
+                                    max="50" value="${res[i].quantity}" title="Cantidad" size="4" inputmode="numeric" disabled>
+                                <span class="q-button plus ${(res[i].quantity >= 50) && 'disabled'}"
+                                    onclick="sidenavCartquantityPlusButton('quantity_${res[i].item}', '${res[i].item}');">+</span>
+                            </div>
+                        </div>
+                        <span class="price">`;
+
+        if (res[i].sale_price) {
+          html += `<del>
+                        <span class="woocommerce-Price-amount amount">
+                            <bdi>
+                                <span class="woocommerce-Price-currencySymbol">$</span>${((res[i].regular_price) * res[i].quantity).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                            </bdi>
+                        </span>
+                    </del>
+                    <span class="woocommerce-Price-amount amount">
+                            <bdi>
+                                <span class="woocommerce-Price-currencySymbol">$</span>${res[i].sale_price.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                            </bdi>
+                        </span>
+                    </span>`;
+        } else {
+          html += `<span class="woocommerce-Price-amount amount">
+                  <bdi>
+                      <span class="woocommerce-Price-currencySymbol">$</span>${res[i].regular_price.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                  </bdi>
+              </span>
+          </span>`;
+        }
+
+        html += `</div>
+                    <span class="sidenav-delete" onclick="deleteFromCart('${res[i].item}')"><i class="fa fa-trash"></i></span>
+                </div>`;
+      }
+
+      html += '<div class="subtotal"><p>Subtotal:</p>' + res[0].total + '</div>';
+      container.html(html);
+      cartcounter.text(res[0].cart_count);
+    } else {
+      cartcounter.removeClass("d-flex");
+      cartcounter.addClass("d-none");
+      container.html('<div class="empty"><p>Tu carrito está vacio.</p></div>');
+    }
+
+    $("#sidenav-cart .sidenav-loader").addClass('d-none');
+  });
+}
+
+function deleteFromCart(item) {
+  if (!!item) {
+    let endpoint = _SITEURL_ + "/wp-content/themes/kibofoods/api-cart.php";
+    let formData = new FormData();
+    formData.append('method', 'deletecartproduct');
+    formData.append('productitem', item);
+    $("#sidenav-cart .sidenav-loader").removeClass('d-none');
+
+    fetch(endpoint, {
+      method: 'post',
+      body: formData
+    }).then(function (response) {
+      return response.json();
+    }).then(function (res) {
+      if (res.cart) {
+        getCartProducts();
+      } else {
+        $("#sidenav-cart .sidenav-loader").addClass('d-none');
+        console.log(res);
+      }
+    });
+  }
+}
+
+function InitiateCheckout() {
+  var endpoint = _SITEURL_ + "/wp-content/themes/kibofoods/api-cart.php";
+  var formData = new FormData();
+  formData.append('method', 'getcartproducts');
+
+  fetch(endpoint, {
+    method: 'post',
+    body: formData,
+  }).then(function (response) {
+    return response.json();
+  }).then(function (res) {
+    if (res.length > 0) {
+      var product_cart_items = [];
+      var cart_total_unformatted = 0;
+
+      for (i = 0; i < res.length; i++) {
+        product_cart_items.push({
+          id: res[i].product_id,
+          quantity: res[i].quantity
+        });
+        cart_total_unformatted = res[i].total_unformatted;
+      }
+      sendFBPixelKibo('gtmCarritoCompraClicFinalizarCompraFinalizaCompra');
+
+      fbq("track", "InitiateCheckout", {
+        content_type: 'product',
+        contents: product_cart_items,
+        currency: 'COP',
+        num_items: product_cart_items.length,
+        value: cart_total_unformatted
+      });
+    }
+
+    window.location.href = _SITEURL_ + "/finalizar-compra";
+  }).catch(function (err) {
+    console.error(err);
+    window.location.href = _SITEURL_ + "/finalizar-compra";
+  });
+}
+
+function CompleteRegistration(email) {
+  fbq("track", "CompleteRegistration", {
+    content_name: email,
+    status: true,
+  });
+}
+
+function sendFBPixelKibo(event) {
+  if (event) {
+    fbq("trackCustom", event);
+  }
+}
+
+function sidenavCartquantityLessButton(id, cart_item) {
+  let value = parseInt($("#" + id).attr('value'));
+
+  if (value > 1 && value <= 50) {
+    value = value - 1;
+    setProductQuantity(cart_item, value);
+  }
+}
+
+function sidenavCartquantityPlusButton(id, cart_item) {
+  let value = parseInt($("#" + id).attr('value'));
+
+  if (value >= 1 && value < 50) {
+    value = value + 1;
+    setProductQuantity(cart_item, value);
+    $("#btn-action-update-cart").click();
+  }
+}
+
+function scrollDown() {
+  $("html, body").animate({
+    scrollTop: $('#believe').offset().top
+  }, 1000);
+  return false;
+}
+
+function scrollUp() {
+  $("html, body").animate({
+    scrollTop: $('.recetas').offset().top - 70
+  }, 1000);
+  return false;
+}
+
+function scrollToTop() {
+  $("html, body").animate({
+    scrollTop: 0
+  }, 1000);
+  return false;
+}
+
+function debounce(func, wait, immediate) {
+  var timeout;
+  return function () {
+    var context = this,
+      args = arguments;
+    clearTimeout(timeout);
+    timeout = setTimeout(function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    }, wait);
+    if (immediate && !timeout) func.apply(context, args);
+  };
+};
+
+var BrowserDetect = {
+  init: function () {
+    this.browser = this.searchString(this.dataBrowser) || "Other";
+    this.version = this.searchVersion(navigator.userAgent) || this.searchVersion(navigator.appVersion) || "Unknown";
+  },
+  searchString: function (data) {
+    for (var i = 0; i < data.length; i++) {
+      var dataString = data[i].string;
+      this.versionSearchString = data[i].subString;
+
+      if (dataString.indexOf(data[i].subString) !== -1) {
+        return data[i].identity;
+      }
+    }
+  },
+  searchVersion: function (dataString) {
+    var index = dataString.indexOf(this.versionSearchString);
+    if (index === -1) {
+      return;
+    }
+
+    var rv = dataString.indexOf("rv:");
+    if (this.versionSearchString === "Trident" && rv !== -1) {
+      return parseFloat(dataString.substring(rv + 3));
+    } else {
+      return parseFloat(dataString.substring(index + this.versionSearchString.length + 1));
+    }
+  },
+
+  dataBrowser: [{
+    string: navigator.userAgent,
+    subString: "Chrome",
+    identity: "Chrome"
+  },
+  {
+    string: navigator.userAgent,
+    subString: "MSIE",
+    identity: "Explorer"
+  },
+  {
+    string: navigator.userAgent,
+    subString: "Trident",
+    identity: "Explorer"
+  },
+  {
+    string: navigator.userAgent,
+    subString: "Firefox",
+    identity: "Firefox"
+  },
+  {
+    string: navigator.userAgent,
+    subString: "Safari",
+    identity: "Safari"
+  },
+  {
+    string: navigator.userAgent,
+    subString: "Opera",
+    identity: "Opera"
+  }
+  ]
+
+};
+
+var better_browser = '<div class="container"><div class="better-browser row"><div class="col-md-2"></div><div class="col-md-8"><h3>We are sorry but it looks like your Browser doesn\'t support our website Features. In order to get the full experience please download a new version of your favourite browser.</h3></div><div class="col-md-2"></div><br><div class="col-md-4"><a href="https://www.mozilla.org/ro/firefox/new/" class="btn btn-warning">Mozilla</a><br></div><div class="col-md-4"><a href="https://www.google.com/chrome/browser/desktop/index.html" class="btn ">Chrome</a><br></div><div class="col-md-4"><a href="http://windows.microsoft.com/en-us/internet-explorer/ie-11-worldwide-languages" class="btn">Internet Explorer</a><br></div><br><br><h4>Thank you!</h4></div></div>';
